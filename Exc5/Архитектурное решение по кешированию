@@ -8,14 +8,17 @@
 Cache-aside как наиболее дешёвый способ для read-intensive окна оператора
 Зависит от данных. Данные пользователя можно кэшировать на сутки, например
 Статус заказа при этом имеет смысл кэшировать в пределах минут или иметь кнопку обновить
+Инвалидация заказа идёт по небольшому времени или явной кнопке обновить
+Так же возможно сделать инвалидацию по ключу через меняющие действия пользователя MES и пользователей CRM
 
 [[mermaid]]
 sequenceDiagram
     participant User
     participant MESApi
+    participant CRMApi
     participant Redis
     participant Database
-    
+    opt Читающее взаимодействие оператора MES
     User->>MESApi: Запроc пользователя
     MESApi->>Redis: Проверка кэша
     alt Cache hit
@@ -26,4 +29,16 @@ sequenceDiagram
         Database-->>MESApi: 
         MESApi->>Redis: Сохранить в кэш
     end
-    MESApi-->>User: Бизнес данные
+    MESApi->>User: Бизнес данные
+    end
+
+    opt Изменяющее взаимодействие оператора MES
+    User->>MESApi: Запроc пользователя
+    MESApi->>Redis: Инвалидация по ключу
+    end
+    opt Изменяющее взаимодействие пользователя CRM
+    User ->> CRMApi: Делает действие
+    CRMApi ->> Redis: Инвалидация кэша
+    end
+    
+
